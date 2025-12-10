@@ -71,9 +71,13 @@ const MediaCard = ({ memory, index, onClick }: MediaCardProps) => {
     return data.publicUrl;
   };
 
+  // Get the specific fallback image from Supabase to replace broken/black placeholders
+  const { data: fallbackData } = supabase.storage.from('IMAGES').getPublicUrl('IMG-20251210-WA0065.jpg');
+  const fallbackUrl = fallbackData.publicUrl;
+
   const placeholderImages = [
-    'https://images.unsplash.com/photo-1518199266791-5375a83190b7?w=600&q=80',
-    'https://images.unsplash.com/photo-1516589178581-6cd7833ae3b2?w=600&q=80',
+    fallbackUrl,
+    fallbackUrl
   ];
 
   const [imgSrc, setImgSrc] = useState(getMediaUrl());
