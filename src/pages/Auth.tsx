@@ -41,6 +41,38 @@ const Auth = () => {
     return 'Guest';
   };
 
+  const playLoginSound = async () => {
+    try {
+      // List files in the 'sound_bck' bucket
+      const { data: files, error: listError } = await supabase
+        .storage
+        .from('sound_bck')
+        .list();
+
+      if (listError) {
+        console.error("Error listing sound files:", listError);
+        return;
+      }
+
+      if (files && files.length > 0) {
+        // Play the first file found in the bucket
+        const soundFile = files[0];
+        const { data } = supabase
+          .storage
+          .from('sound_bck')
+          .getPublicUrl(soundFile.name);
+
+        if (data.publicUrl) {
+          const audio = new Audio(data.publicUrl);
+          audio.volume = 0.6; // Set a reasonable volume
+          await audio.play().catch((e) => console.error("Audio playback blocked:", e));
+        }
+      }
+    } catch (error) {
+      console.error("Error playing login sound:", error);
+    }
+  };
+
   const handleLogin = async (e: React.FormEvent) => {
     e.preventDefault();
     setLoading(true);
@@ -59,6 +91,9 @@ const Auth = () => {
           variant: "destructive",
         });
       } else {
+        // Trigger sound effect on success
+        playLoginSound();
+
         toast({
           title: `Welcome back, ${getUserRole(email)}`,
           description: "Your love story awaits...",
