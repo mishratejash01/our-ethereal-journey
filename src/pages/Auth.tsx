@@ -9,7 +9,7 @@ import { Label } from '@/components/ui/label';
 import { useToast } from '@/hooks/use-toast';
 
 const Auth = () => {
-  const [isLogin, setIsLogin] = useState(true);
+  // Removed isLogin state since we only allow login now
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
   const [loading, setLoading] = useState(false);
@@ -41,50 +41,28 @@ const Auth = () => {
     return 'Guest';
   };
 
-  const handleAuth = async (e: React.FormEvent) => {
+  const handleLogin = async (e: React.FormEvent) => {
     e.preventDefault();
     setLoading(true);
 
     try {
-      if (isLogin) {
-        const { error } = await supabase.auth.signInWithPassword({
-          email,
-          password,
-        });
+      // Exclusively handle Login
+      const { error } = await supabase.auth.signInWithPassword({
+        email,
+        password,
+      });
 
-        if (error) {
-          toast({
-            title: "Login failed",
-            description: error.message,
-            variant: "destructive",
-          });
-        } else {
-          toast({
-            title: `Welcome back, ${getUserRole(email)}`,
-            description: "Your love story awaits...",
-          });
-        }
+      if (error) {
+        toast({
+          title: "Login failed",
+          description: error.message,
+          variant: "destructive",
+        });
       } else {
-        const { error } = await supabase.auth.signUp({
-          email,
-          password,
-          options: {
-            emailRedirectTo: `${window.location.origin}/`,
-          },
+        toast({
+          title: `Welcome back, ${getUserRole(email)}`,
+          description: "Your love story awaits...",
         });
-
-        if (error) {
-          toast({
-            title: "Sign up failed",
-            description: error.message,
-            variant: "destructive",
-          });
-        } else {
-          toast({
-            title: "Check your email",
-            description: "We sent you a confirmation link.",
-          });
-        }
       }
     } catch (error) {
       toast({
@@ -187,12 +165,12 @@ const Auth = () => {
             </div>
             <h1 className="font-display text-3xl mt-4 text-foreground">Our Story</h1>
             <p className="text-muted-foreground text-sm mt-1">
-              {isLogin ? 'Welcome back, my love' : 'Begin our journey'}
+              Welcome back, my love
             </p>
           </motion.div>
 
           {/* Form */}
-          <form onSubmit={handleAuth} className="space-y-5">
+          <form onSubmit={handleLogin} className="space-y-5">
             <div className="space-y-2">
               <Label htmlFor="email" className="text-foreground/80">Email</Label>
               <div className="relative">
@@ -236,25 +214,11 @@ const Auth = () => {
               ) : (
                 <span className="flex items-center gap-2">
                   <Heart className="w-5 h-5" />
-                  {isLogin ? 'Enter Our World' : 'Start Our Story'}
+                  Enter Our World
                 </span>
               )}
             </Button>
           </form>
-
-          {/* Toggle */}
-          <div className="mt-6 text-center">
-            <button
-              type="button"
-              onClick={() => setIsLogin(!isLogin)}
-              className="text-sm text-muted-foreground hover:text-primary transition-colors"
-            >
-              {isLogin ? "Don't have an account? " : "Already have an account? "}
-              <span className="text-primary font-medium">
-                {isLogin ? 'Sign up' : 'Login'}
-              </span>
-            </button>
-          </div>
 
           {/* Hint */}
           <AnimatePresence>
