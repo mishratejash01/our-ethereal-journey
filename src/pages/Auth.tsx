@@ -1,4 +1,4 @@
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useRef } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { supabase } from '@/integrations/supabase/client';
 import { motion, AnimatePresence } from 'framer-motion';
@@ -9,24 +9,28 @@ import { Label } from '@/components/ui/label';
 import { useToast } from '@/hooks/use-toast';
 
 const Auth = () => {
-  // Removed isLogin state since we only allow login now
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
   const [loading, setLoading] = useState(false);
   const [checkingAuth, setCheckingAuth] = useState(true);
+  
+  // Ref to track if we are in the middle of a manual login to prevent auto-redirect
+  const isManualLogin = useRef(false);
+  
   const navigate = useNavigate();
   const { toast } = useToast();
 
   useEffect(() => {
     const { data: { subscription } } = supabase.auth.onAuthStateChange((event, session) => {
-      if (session?.user) {
+      // If we are manually logging in, we handle navigation in handleLogin after sound plays
+      if (session?.user && !isManualLogin.current) {
         navigate('/', { replace: true });
       }
       setCheckingAuth(false);
     });
 
     supabase.auth.getSession().then(({ data: { session } }) => {
-      if (session?.user) {
+      if (session?.user && !isManualLogin.current) {
         navigate('/', { replace: true });
       }
       setCheckingAuth(false);
@@ -43,6 +47,7 @@ const Auth = () => {
 
   const playLoginSound = async () => {
     try {
+      console.log("Attempting to play login sound...");
       // List files in the 'sound_bck' bucket
       const { data: files, error: listError } = await supabase
         .storage
@@ -54,31 +59,42 @@ const Auth = () => {
         return;
       }
 
-      if (files && files.length > 0) {
-        // Play the first file found in the bucket
-        const soundFile = files[0];
-        const { data } = supabase
-          .storage
-          .from('sound_bck')
-          .getPublicUrl(soundFile.name);
+      console.log("Files found in bucket:", files);
 
-        if (data.publicUrl) {
-          const audio = new Audio(data.publicUrl);
-          audio.volume = 0.6; // Set a reasonable volume
-          await audio.play().catch((e) => console.error("Audio playback blocked:", e));
+      if (files && files.length > 0) {
+        // Play the first file found (ignoring empty folders)
+        const soundFile = files.find(f => f.name !== '.emptyFolderPlaceholder' && f.metadata);
+        
+        if (soundFile) {
+          const { data } = supabase
+            .storage
+            .from('sound_bck')
+            .getPublicUrl(soundFile.name);
+
+          if (data.publicUrl) {
+            console.log("Playing sound from:", data.publicUrl);
+            const audio = new Audio(data.publicUrl);
+            audio.volume = 0.6;
+            // Return the promise so we can await it
+            await audio.play().catch((e) => console.error("Audio playback blocked/failed:", e));
+          }
+        } else {
+          console.warn("No valid sound file found in bucket.");
         }
+      } else {
+        console.warn("Bucket is empty.");
       }
     } catch (error) {
-      console.error("Error playing login sound:", error);
+      console.error("Error in playLoginSound:", error);
     }
   };
 
   const handleLogin = async (e: React.FormEvent) => {
     e.preventDefault();
     setLoading(true);
+    isManualLogin.current = true; // Block auto-redirect
 
     try {
-      // Exclusively handle Login
       const { error } = await supabase.auth.signInWithPassword({
         email,
         password,
@@ -90,21 +106,29 @@ const Auth = () => {
           description: error.message,
           variant: "destructive",
         });
+        isManualLogin.current = false; // Reset if failed
       } else {
-        // Trigger sound effect on success
-        playLoginSound();
-
         toast({
           title: `Welcome back, ${getUserRole(email)}`,
           description: "Your love story awaits...",
         });
+
+        // Play sound and await it slightly to ensure it starts
+        await playLoginSound();
+        
+        // Add a tiny delay to ensure audio context is established if needed, then navigate
+        setTimeout(() => {
+          navigate('/', { replace: true });
+        }, 500);
       }
     } catch (error) {
+      console.error("Login error:", error);
       toast({
         title: "Error",
         description: "Something went wrong. Please try again.",
         variant: "destructive",
       });
+      isManualLogin.current = false;
     } finally {
       setLoading(false);
     }
