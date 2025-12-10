@@ -14,7 +14,45 @@ export type Database = {
   }
   public: {
     Tables: {
-      [_ in never]: never
+      memories: {
+        Row: {
+          aspect_ratio: string | null
+          created_at: string
+          description: string | null
+          display_order: number | null
+          file_path: string
+          file_type: string
+          id: string
+          storage_url: string | null
+          title: string | null
+          updated_at: string
+        }
+        Insert: {
+          aspect_ratio?: string | null
+          created_at?: string
+          description?: string | null
+          display_order?: number | null
+          file_path: string
+          file_type?: string
+          id?: string
+          storage_url?: string | null
+          title?: string | null
+          updated_at?: string
+        }
+        Update: {
+          aspect_ratio?: string | null
+          created_at?: string
+          description?: string | null
+          display_order?: number | null
+          file_path?: string
+          file_type?: string
+          id?: string
+          storage_url?: string | null
+          title?: string | null
+          updated_at?: string
+        }
+        Relationships: []
+      }
     }
     Views: {
       [_ in never]: never
