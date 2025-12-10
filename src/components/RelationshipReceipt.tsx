@@ -1,5 +1,4 @@
 import { motion } from 'framer-motion';
-import { useEffect, useRef } from 'react';
 
 const receiptItems = [
   { item: "Days Together", value: "1,095", dots: true },
@@ -15,36 +14,6 @@ const receiptItems = [
 ];
 
 const RelationshipReceipt = () => {
-  const receiptRef = useRef<HTMLDivElement>(null);
-
-  useEffect(() => {
-    // Auto-scroll animation
-    const receipt = receiptRef.current;
-    if (!receipt) return;
-
-    let animationId: number;
-    let scrollPos = 0;
-
-    const animate = () => {
-      scrollPos += 0.3;
-      if (scrollPos >= receipt.scrollHeight - receipt.clientHeight) {
-        scrollPos = 0;
-      }
-      receipt.scrollTop = scrollPos;
-      animationId = requestAnimationFrame(animate);
-    };
-
-    // Start after delay
-    const timeout = setTimeout(() => {
-      animationId = requestAnimationFrame(animate);
-    }, 2000);
-
-    return () => {
-      clearTimeout(timeout);
-      cancelAnimationFrame(animationId);
-    };
-  }, []);
-
   return (
     <section className="py-20 px-4 relative overflow-hidden bg-gradient-to-b from-background to-background/80">
       <div className="max-w-md mx-auto">
@@ -83,10 +52,7 @@ const RelationshipReceipt = () => {
               </div>
 
               {/* Items */}
-              <div 
-                ref={receiptRef}
-                className="space-y-2 max-h-64 overflow-hidden"
-              >
+              <div className="space-y-2">
                 {receiptItems.map((item, index) => (
                   <motion.div
                     key={index}
@@ -125,8 +91,8 @@ const RelationshipReceipt = () => {
                       key={i}
                       className="bg-gray-800"
                       style={{
-                        width: Math.random() > 0.5 ? '2px' : '3px',
-                        height: `${30 + Math.random() * 20}px`,
+                        width: i % 3 === 0 ? '3px' : '2px',
+                        height: `${30 + (i % 5) * 5}px`, // Fixed height pattern
                       }}
                     />
                   ))}
