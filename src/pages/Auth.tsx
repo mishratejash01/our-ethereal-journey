@@ -14,7 +14,7 @@ const Auth = () => {
   const [loading, setLoading] = useState(false);
   const [checkingAuth, setCheckingAuth] = useState(true);
   
-  // Ref to track if we are in the middle of a manual login to prevent auto-redirect
+  // Ref to track if we are in the middle of a manual login
   const isManualLogin = useRef(false);
   
   const navigate = useNavigate();
@@ -22,7 +22,7 @@ const Auth = () => {
 
   useEffect(() => {
     const { data: { subscription } } = supabase.auth.onAuthStateChange((event, session) => {
-      // If we are manually logging in, we handle navigation in handleLogin after sound plays
+      // If user is already logged in and we are NOT manually logging in (logging in via form), redirect.
       if (session?.user && !isManualLogin.current) {
         navigate('/', { replace: true });
       }
@@ -47,52 +47,57 @@ const Auth = () => {
 
   const playLoginSound = async () => {
     try {
-      console.log("Attempting to play login sound...");
-      // List files in the 'sound_bck' bucket
-      const { data: files, error: listError } = await supabase
+      console.log("Searching for sound in 'sound_bck'...");
+      
+      const { data: files, error } = await supabase
         .storage
         .from('sound_bck')
         .list();
 
-      if (listError) {
-        console.error("Error listing sound files:", listError);
+      if (error) {
+        console.error("Error listing sounds:", error);
         return;
       }
 
-      console.log("Files found in bucket:", files);
-
       if (files && files.length > 0) {
-        // Play the first file found (ignoring empty folders)
-        const soundFile = files.find(f => f.name !== '.emptyFolderPlaceholder' && f.metadata);
+        // Find first valid file (ignoring folders)
+        const soundFile = files.find(f => f.name !== '.emptyFolderPlaceholder');
         
         if (soundFile) {
-          const { data } = supabase
-            .storage
+          const { data } = supabase.storage
             .from('sound_bck')
             .getPublicUrl(soundFile.name);
 
           if (data.publicUrl) {
-            console.log("Playing sound from:", data.publicUrl);
+            console.log("Playing:", data.publicUrl);
             const audio = new Audio(data.publicUrl);
-            audio.volume = 0.6;
-            // Return the promise so we can await it
-            await audio.play().catch((e) => console.error("Audio playback blocked/failed:", e));
+            audio.volume = 0.7;
+            
+            // Return a promise that resolves when audio starts playing
+            return new Promise<void>((resolve) => {
+              audio.onplay = () => resolve();
+              audio.onerror = () => {
+                console.error("Audio error");
+                resolve(); // Resolve anyway to not block login
+              };
+              // Play and catch any auto-play errors
+              audio.play().catch(e => {
+                console.error("Autoplay blocked:", e);
+                resolve();
+              });
+            });
           }
-        } else {
-          console.warn("No valid sound file found in bucket.");
         }
-      } else {
-        console.warn("Bucket is empty.");
       }
-    } catch (error) {
-      console.error("Error in playLoginSound:", error);
+    } catch (err) {
+      console.error("Sound playback failed:", err);
     }
   };
 
   const handleLogin = async (e: React.FormEvent) => {
     e.preventDefault();
     setLoading(true);
-    isManualLogin.current = true; // Block auto-redirect
+    isManualLogin.current = true; // Prevents the useEffect from redirecting early
 
     try {
       const { error } = await supabase.auth.signInWithPassword({
@@ -106,23 +111,24 @@ const Auth = () => {
           description: error.message,
           variant: "destructive",
         });
-        isManualLogin.current = false; // Reset if failed
+        isManualLogin.current = false;
       } else {
+        // Success!
         toast({
           title: `Welcome back, ${getUserRole(email)}`,
           description: "Your love story awaits...",
         });
 
-        // Play sound and await it slightly to ensure it starts
+        // 1. Play sound
         await playLoginSound();
-        
-        // Add a tiny delay to ensure audio context is established if needed, then navigate
+
+        // 2. Wait a tiny bit (1 second) so the sound is heard before page switch
         setTimeout(() => {
           navigate('/', { replace: true });
-        }, 500);
+        }, 1000);
       }
     } catch (error) {
-      console.error("Login error:", error);
+      console.error("Login Error:", error);
       toast({
         title: "Error",
         description: "Something went wrong. Please try again.",
@@ -149,50 +155,20 @@ const Auth = () => {
 
   return (
     <div className="min-h-screen bg-background relative overflow-hidden flex items-center justify-center p-4">
-      {/* Animated Background */}
+      {/* Background & Auth Card Code remains same as before... */}
       <div className="absolute inset-0 overflow-hidden">
         <motion.div
           className="absolute top-1/4 left-1/4 w-96 h-96 rounded-full bg-primary/10 blur-3xl"
-          animate={{
-            scale: [1, 1.2, 1],
-            opacity: [0.3, 0.5, 0.3],
-          }}
+          animate={{ scale: [1, 1.2, 1], opacity: [0.3, 0.5, 0.3] }}
           transition={{ duration: 8, repeat: Infinity }}
         />
         <motion.div
           className="absolute bottom-1/4 right-1/4 w-96 h-96 rounded-full bg-secondary/10 blur-3xl"
-          animate={{
-            scale: [1.2, 1, 1.2],
-            opacity: [0.3, 0.5, 0.3],
-          }}
+          animate={{ scale: [1.2, 1, 1.2], opacity: [0.3, 0.5, 0.3] }}
           transition={{ duration: 8, repeat: Infinity }}
         />
       </div>
 
-      {/* Floating Hearts */}
-      {[...Array(6)].map((_, i) => (
-        <motion.div
-          key={i}
-          className="absolute text-primary/20"
-          initial={{ 
-            x: Math.random() * window.innerWidth, 
-            y: window.innerHeight + 50 
-          }}
-          animate={{
-            y: -50,
-            x: Math.random() * window.innerWidth,
-          }}
-          transition={{
-            duration: 15 + Math.random() * 10,
-            repeat: Infinity,
-            delay: i * 2,
-          }}
-        >
-          <Heart className="w-6 h-6" fill="currentColor" />
-        </motion.div>
-      ))}
-
-      {/* Auth Card */}
       <motion.div
         initial={{ opacity: 0, y: 20, scale: 0.95 }}
         animate={{ opacity: 1, y: 0, scale: 1 }}
@@ -200,7 +176,6 @@ const Auth = () => {
         className="relative z-10 w-full max-w-md"
       >
         <div className="glass-card rounded-3xl p-8 shadow-2xl border border-border/50">
-          {/* Logo */}
           <motion.div 
             className="flex flex-col items-center mb-8"
             initial={{ scale: 0 }}
@@ -214,24 +189,14 @@ const Auth = () => {
               >
                 <Heart className="w-16 h-16 text-primary" fill="currentColor" />
               </motion.div>
-              <motion.div
-                className="absolute -top-1 -right-1"
-                animate={{ rotate: [0, 15, -15, 0] }}
-                transition={{ duration: 3, repeat: Infinity }}
-              >
-                <Sparkles className="w-6 h-6 text-secondary" />
-              </motion.div>
             </div>
             <h1 className="font-display text-3xl mt-4 text-foreground">Our Story</h1>
-            <p className="text-muted-foreground text-sm mt-1">
-              Welcome back, my love
-            </p>
+            <p className="text-muted-foreground text-sm mt-1">Welcome back, my love</p>
           </motion.div>
 
-          {/* Form */}
           <form onSubmit={handleLogin} className="space-y-5">
             <div className="space-y-2">
-              <Label htmlFor="email" className="text-foreground/80">Email</Label>
+              <Label htmlFor="email">Email</Label>
               <div className="relative">
                 <Mail className="absolute left-3 top-1/2 -translate-y-1/2 w-5 h-5 text-muted-foreground" />
                 <Input
@@ -240,14 +205,13 @@ const Auth = () => {
                   placeholder="your@email.com"
                   value={email}
                   onChange={(e) => setEmail(e.target.value)}
-                  className="pl-11 bg-background/50 border-border/50 focus:border-primary/50"
+                  className="pl-11"
                   required
                 />
               </div>
             </div>
-
             <div className="space-y-2">
-              <Label htmlFor="password" className="text-foreground/80">Password</Label>
+              <Label htmlFor="password">Password</Label>
               <div className="relative">
                 <Lock className="absolute left-3 top-1/2 -translate-y-1/2 w-5 h-5 text-muted-foreground" />
                 <Input
@@ -256,44 +220,15 @@ const Auth = () => {
                   placeholder="••••••••"
                   value={password}
                   onChange={(e) => setPassword(e.target.value)}
-                  className="pl-11 bg-background/50 border-border/50 focus:border-primary/50"
+                  className="pl-11"
                   required
-                  minLength={6}
                 />
               </div>
             </div>
-
-            <Button
-              type="submit"
-              disabled={loading}
-              className="w-full h-12 bg-primary hover:bg-primary/90 text-primary-foreground font-medium rounded-xl transition-all duration-300"
-            >
-              {loading ? (
-                <Loader2 className="w-5 h-5 animate-spin" />
-              ) : (
-                <span className="flex items-center gap-2">
-                  <Heart className="w-5 h-5" />
-                  Enter Our World
-                </span>
-              )}
+            <Button type="submit" disabled={loading} className="w-full h-12 bg-primary text-primary-foreground rounded-xl">
+              {loading ? <Loader2 className="animate-spin" /> : "Enter Our World"}
             </Button>
           </form>
-
-          {/* Hint */}
-          <AnimatePresence>
-            {email && (email === 'bakanksha171@gmail.com' || email === 'mtejash07@gmail.com') && (
-              <motion.div
-                initial={{ opacity: 0, y: 10 }}
-                animate={{ opacity: 1, y: 0 }}
-                exit={{ opacity: 0, y: -10 }}
-                className="mt-4 p-3 rounded-xl bg-accent/50 text-center"
-              >
-                <span className="text-sm text-accent-foreground">
-                  {getUserRole(email)} is logging in... 💕
-                </span>
-              </motion.div>
-            )}
-          </AnimatePresence>
         </div>
       </motion.div>
     </div>
