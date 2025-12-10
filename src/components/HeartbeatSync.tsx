@@ -14,6 +14,7 @@ const HeartbeatSync = () => {
   const [isTouching, setIsTouching] = useState(false);
   const [partnerTouching, setPartnerTouching] = useState(false);
   const [syncAchieved, setSyncAchieved] = useState(false);
+  const [channel, setChannel] = useState<ReturnType<typeof supabase.channel> | null>(null);
   const [userId] = useState(() => `user_${Math.random().toString(36).substr(2, 9)}`);
 
   const isSynced = isTouching && partnerTouching;
@@ -36,7 +37,7 @@ const HeartbeatSync = () => {
   }, [isTouching, partnerTouching]);
 
   useEffect(() => {
-    const channel = supabase.channel('heartbeat-room', {
+    const ch = supabase.channel('heartbeat-room', {
       config: {
         presence: {
           key: userId,
@@ -44,9 +45,9 @@ const HeartbeatSync = () => {
       },
     });
 
-    channel
+    ch
       .on('presence', { event: 'sync' }, () => {
-        const state = channel.presenceState();
+        const state = ch.presenceState();
         const users = Object.values(state).flat() as unknown as PresenceState[];
         const otherUsers = users.filter((u) => u.odys_id !== userId);
         
@@ -62,26 +63,29 @@ const HeartbeatSync = () => {
       .subscribe(async (status) => {
         if (status === 'SUBSCRIBED') {
           setIsConnected(true);
-          await channel.track({ isTouching: false, odys_id: userId });
+          setChannel(ch);
+          await ch.track({ isTouching: false, odys_id: userId });
         }
       });
 
     return () => {
-      supabase.removeChannel(channel);
+      supabase.removeChannel(ch);
     };
   }, [userId]);
 
   const handleTouchStart = useCallback(async () => {
     setIsTouching(true);
-    const channel = supabase.channel('heartbeat-room');
-    await channel.track({ isTouching: true, odys_id: userId });
-  }, [userId]);
+    if (channel) {
+      await channel.track({ isTouching: true, odys_id: userId });
+    }
+  }, [channel, userId]);
 
   const handleTouchEnd = useCallback(async () => {
     setIsTouching(false);
-    const channel = supabase.channel('heartbeat-room');
-    await channel.track({ isTouching: false, odys_id: userId });
-  }, [userId]);
+    if (channel) {
+      await channel.track({ isTouching: false, odys_id: userId });
+    }
+  }, [channel, userId]);
 
   return (
     <section className="relative min-h-screen flex items-center justify-center overflow-hidden bg-slate-950">
