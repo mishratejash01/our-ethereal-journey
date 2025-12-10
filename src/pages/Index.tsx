@@ -11,6 +11,7 @@ import LoveLetter from '@/components/LoveLetter';
 import MusicPlayer from '@/components/MusicPlayer';
 import Footer from '@/components/Footer';
 import ParticleBackground from '@/components/ParticleBackground';
+import OpenWhen from '@/components/OpenWhen';
 
 const Index = () => {
   return (
@@ -30,6 +31,7 @@ const Index = () => {
         <RelationshipReceipt />
         <PhotoGallery />
         <LoveLetter />
+        <OpenWhen />
         <Footer />
       </div>
 
