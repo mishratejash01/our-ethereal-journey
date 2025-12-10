@@ -2,14 +2,13 @@ import { motion } from 'framer-motion';
 
 const receiptItems = [
   { item: "Days Together", value: "1,095", dots: true },
+  { item: "Times we met in person", value: "school days + outside = 700", dots: true },
   { item: "Arguments Won by You", value: "100%", dots: true },
   { item: "Patience Tested", value: "Limitless", dots: true },
   { item: "Late Night Talks", value: "∞", dots: true },
   { item: "Inside Jokes Created", value: "847", dots: true },
-  { item: "Fries Stolen", value: "4,502", dots: true },
   { item: "Random 'I Love You's", value: "10,000+", dots: true },
   { item: "Forehead Kisses", value: "Countless", dots: true },
-  { item: "Adventures Shared", value: "Memory Full", dots: true },
   { item: "My Happiness", value: "Priceless", dots: true },
 ];
 
