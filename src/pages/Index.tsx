@@ -3,7 +3,9 @@ import LoveCounter from '@/components/LoveCounter';
 import VisualPoetry from '@/components/VisualPoetry';
 import Timeline from '@/components/Timeline';
 import TruthTest from '@/components/TruthTest';
+import ReasonGalaxy from '@/components/ReasonGalaxy';
 import EternalRose from '@/components/EternalRose';
+import RelationshipReceipt from '@/components/RelationshipReceipt';
 import PhotoGallery from '@/components/PhotoGallery';
 import LoveLetter from '@/components/LoveLetter';
 import MusicPlayer from '@/components/MusicPlayer';
@@ -23,7 +25,9 @@ const Index = () => {
         <VisualPoetry />
         <Timeline />
         <TruthTest />
+        <ReasonGalaxy />
         <EternalRose />
+        <RelationshipReceipt />
         <PhotoGallery />
         <LoveLetter />
         <Footer />
