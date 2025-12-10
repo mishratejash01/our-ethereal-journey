@@ -66,18 +66,14 @@ const MediaCard = ({ memory, index, onClick }: MediaCardProps) => {
   // Get the public URL from Supabase storage
   const getMediaUrl = () => {
     if (memory.storage_url) return memory.storage_url;
+    // Using file_path directly as we are fetching from the bucket root
     const { data } = supabase.storage.from('IMAGES').getPublicUrl(memory.file_path);
     return data.publicUrl;
   };
 
-  // Fallback to placeholder images if storage file doesn't exist
   const placeholderImages = [
     'https://images.unsplash.com/photo-1518199266791-5375a83190b7?w=600&q=80',
     'https://images.unsplash.com/photo-1516589178581-6cd7833ae3b2?w=600&q=80',
-    'https://images.unsplash.com/photo-1529333166437-7750a6dd5a70?w=600&q=80',
-    'https://images.unsplash.com/photo-1522673607200-164d1b6ce486?w=600&q=80',
-    'https://images.unsplash.com/photo-1494774157365-9e04c6720e47?w=600&q=80',
-    'https://images.unsplash.com/photo-1523438885200-e635ba2c371e?w=600&q=80',
   ];
 
   const [imgSrc, setImgSrc] = useState(getMediaUrl());
@@ -104,7 +100,7 @@ const MediaCard = ({ memory, index, onClick }: MediaCardProps) => {
       initial={{ opacity: 0, y: 50 }}
       whileInView={{ opacity: 1, y: 0 }}
       viewport={{ once: true, margin: "-50px" }}
-      transition={{ duration: 0.6, delay: index * 0.08, ease: [0.25, 0.46, 0.45, 0.94] }}
+      transition={{ duration: 0.6, delay: index * 0.05, ease: [0.25, 0.46, 0.45, 0.94] }}
       style={{ rotateX, rotateY, transformStyle: 'preserve-3d' }}
       onMouseMove={handleMouseMove}
       onMouseEnter={handleMouseEnter}
@@ -172,14 +168,9 @@ const MediaCard = ({ memory, index, onClick }: MediaCardProps) => {
           transition={{ duration: 0.3 }}
           className="absolute bottom-0 left-0 right-0 p-4 z-20"
         >
-          <p className="text-primary-foreground font-display text-lg font-medium drop-shadow-lg">
+          <p className="text-primary-foreground font-display text-lg font-medium drop-shadow-lg truncate">
             {memory.title}
           </p>
-          {memory.description && (
-            <p className="text-primary-foreground/80 text-sm mt-1 drop-shadow-md">
-              {memory.description}
-            </p>
-          )}
         </motion.div>
       </div>
     </motion.div>
@@ -225,12 +216,6 @@ const Lightbox = ({ memory, isOpen, onClose, onNext, onPrev, hasNext, hasPrev }:
     return data.publicUrl;
   };
 
-  const placeholderImages = [
-    'https://images.unsplash.com/photo-1518199266791-5375a83190b7?w=1200&q=90',
-    'https://images.unsplash.com/photo-1516589178581-6cd7833ae3b2?w=1200&q=90',
-    'https://images.unsplash.com/photo-1529333166437-7750a6dd5a70?w=1200&q=90',
-  ];
-
   const [imgSrc, setImgSrc] = useState('');
 
   useEffect(() => {
@@ -238,10 +223,6 @@ const Lightbox = ({ memory, isOpen, onClose, onNext, onPrev, hasNext, hasPrev }:
       setImgSrc(getMediaUrl(memory));
     }
   }, [memory]);
-
-  const handleImageError = () => {
-    setImgSrc(placeholderImages[0]);
-  };
 
   if (!memory) return null;
 
@@ -301,7 +282,6 @@ const Lightbox = ({ memory, isOpen, onClose, onNext, onPrev, hasNext, hasPrev }:
               <img
                 src={imgSrc}
                 alt={memory.title || 'Memory'}
-                onError={handleImageError}
                 className="max-w-full max-h-[80vh] object-contain rounded-xl"
               />
             )}
@@ -309,10 +289,7 @@ const Lightbox = ({ memory, isOpen, onClose, onNext, onPrev, hasNext, hasPrev }:
 
           {/* Title bar */}
           <div className="absolute bottom-0 left-0 right-0 p-6 bg-gradient-to-t from-background/80 to-transparent">
-            <h3 className="font-display text-2xl text-foreground">{memory.title}</h3>
-            {memory.description && (
-              <p className="text-muted-foreground mt-1">{memory.description}</p>
-            )}
+            <h3 className="font-display text-2xl text-foreground text-center">{memory.title}</h3>
           </div>
         </div>
       </DialogContent>
@@ -328,15 +305,46 @@ const PhotoGallery = () => {
   useEffect(() => {
     const fetchMemories = async () => {
       try {
+        // Fetch direct list from Storage bucket "IMAGES"
+        // Increased limit to 200 to handle your 80+ photos
         const { data, error } = await supabase
-          .from('memories')
-          .select('*')
-          .order('display_order', { ascending: true });
+          .storage
+          .from('IMAGES')
+          .list('', {
+            limit: 200,
+            offset: 0,
+            sortBy: { column: 'created_at', order: 'desc' },
+          });
 
         if (error) throw error;
-        setMemories(data || []);
+
+        // Filter out system files
+        const files = data?.filter(file => file.name !== '.emptyFolderPlaceholder') || [];
+
+        // Map storage files to Memory objects
+        // Create an automatic layout pattern: Portrait, Square, Square, Landscape, Square...
+        const patterns = ['portrait', 'square', 'square', 'landscape', 'square', 'portrait', 'square', 'landscape'];
+        
+        const memoriesData: Memory[] = files.map((file, index) => {
+          const isVideo = file.metadata?.mimetype?.startsWith('video');
+          // Fallback title from filename
+          const titleName = file.name.split('.').slice(0, -1).join('.').replace(/[-_]/g, ' ');
+
+          return {
+            id: file.id,
+            title: titleName, 
+            description: null,
+            file_path: file.name,
+            file_type: isVideo ? 'video' : 'image',
+            storage_url: null,
+            display_order: index,
+            aspect_ratio: patterns[index % patterns.length],
+          };
+        });
+
+        setMemories(memoriesData);
       } catch (error) {
-        console.error('Error fetching memories:', error);
+        console.error('Error fetching memories from storage:', error);
       } finally {
         setIsLoading(false);
       }
@@ -390,10 +398,11 @@ const PhotoGallery = () => {
         </motion.div>
 
         {/* Masonry Grid */}
+        {/* Added grid-flow-dense to fill gaps created by mixed aspect ratios */}
         {isLoading ? (
           <GallerySkeleton />
         ) : memories.length > 0 ? (
-          <div className="grid grid-cols-2 md:grid-cols-4 gap-4 md:gap-6 max-w-6xl mx-auto auto-rows-[200px] md:auto-rows-[250px]">
+          <div className="grid grid-cols-2 md:grid-cols-4 gap-4 md:gap-6 max-w-6xl mx-auto auto-rows-[200px] md:auto-rows-[250px] grid-flow-dense">
             {memories.map((memory, index) => (
               <MediaCard
                 key={memory.id}
@@ -405,7 +414,7 @@ const PhotoGallery = () => {
           </div>
         ) : (
           <div className="text-center py-20">
-            <p className="text-muted-foreground">No memories yet. Upload some photos to your Supabase storage!</p>
+            <p className="text-muted-foreground">No photos found in the IMAGES bucket.</p>
           </div>
         )}
       </div>
