@@ -3,6 +3,7 @@ import LoveCounter from '@/components/LoveCounter';
 import VisualPoetry from '@/components/VisualPoetry';
 import Timeline from '@/components/Timeline';
 import TruthTest from '@/components/TruthTest';
+import HeartbeatSync from '@/components/HeartbeatSync';
 import ReasonGalaxy from '@/components/ReasonGalaxy';
 import EternalRose from '@/components/EternalRose';
 import RelationshipReceipt from '@/components/RelationshipReceipt';
@@ -12,6 +13,7 @@ import MusicPlayer from '@/components/MusicPlayer';
 import Footer from '@/components/Footer';
 import ParticleBackground from '@/components/ParticleBackground';
 import OpenWhen from '@/components/OpenWhen';
+import SkyOfWishes from '@/components/SkyOfWishes';
 
 const Index = () => {
   return (
@@ -26,12 +28,14 @@ const Index = () => {
         <VisualPoetry />
         <Timeline />
         <TruthTest />
+        <HeartbeatSync />
         <ReasonGalaxy />
         <EternalRose />
         <RelationshipReceipt />
         <PhotoGallery />
         <LoveLetter />
         <OpenWhen />
+        <SkyOfWishes />
         <Footer />
       </div>
 
