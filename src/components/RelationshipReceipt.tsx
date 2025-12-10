@@ -3,7 +3,7 @@ import { motion } from 'framer-motion';
 const receiptItems = [
   { item: "Days Together", value: "1,095", dots: true },
   { item: "Times we met in person", value: "school days + outside = 700", dots: true },
-  { item: "Arguments Won by You", value: "100%", dots: true },
+  { item: "Kaleshes won by you", value: "100%", dots: true },
   { item: "Patience Tested", value: "Limitless", dots: true },
   { item: "Late Night Talks", value: "∞", dots: true },
   { item: "Inside Jokes Created", value: "847", dots: true },
