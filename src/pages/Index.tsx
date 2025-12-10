@@ -6,7 +6,7 @@ import { Heart, LogOut } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import HeroSection from '@/components/HeroSection';
 import LoveCounter from '@/components/LoveCounter';
-import { PulseLink } from '@/components/PulseLink'; // Updated Import
+import { PulseLink } from '@/components/PulseLink'; 
 import Timeline from '@/components/Timeline';
 import TruthTest from '@/components/TruthTest';
 import HeartbeatSync from '@/components/HeartbeatSync';
@@ -81,10 +81,7 @@ const Index = () => {
       <div className="relative z-10">
         <HeroSection />
         <LoveCounter />
-        
-        {/* Replaced VisualPoetry with PulseLink */}
         <PulseLink />
-        
         <Timeline />
         <TruthTest />
         <HeartbeatSync />
@@ -98,7 +95,6 @@ const Index = () => {
         <Footer />
       </div>
 
-      {/* Floating Music Player */}
       <MusicPlayer />
     </main>
   );
