@@ -8,7 +8,7 @@ const receiptItems = [
   { item: "Late Night Talks", value: "∞", dots: true },
   { item: "Inside Jokes Created", value: "847", dots: true },
   { item: "Random 'I Love You's", value: "10,000+", dots: true },
-  { item: "Forehead Kisses", value: "Countless", dots: true },
+  { item: "Upcoming Kaleshes", value: "Countless", dots: true },
   { item: "My Happiness", value: "Priceless", dots: true },
 ];
 
